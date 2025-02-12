@@ -12,6 +12,7 @@ const errorMiddleware = require("./src/middlewares/errorMiddleware.js");
 
 
 console.log('JWT_SECRET:', process.env.JWT_SECRET);  // JWT_SECRET 값 확인
+console.log('GEMINI_API_KEY: ', process.env.GEMINI_API_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
