@@ -5,7 +5,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swaggerConfig");
 const todoRouter = require("./src/routes/todoRouter");
 const userRoutes = require("./src/routes/userRoutes");
-const reportRoutes = require("./src/routes/reportRouter");
+const reportRouter = require("./src/routes/reportRouter");
 const experienceRouter = require("./src/routes/experienceRoutes.js");
 const goalRouter = require("./src/routes/goalRoutes.js");
 const errorMiddleware = require("./src/middlewares/errorMiddleware.js");
@@ -21,9 +21,11 @@ app.use(express.json());
 app.use(cors());
 app.use("/api", todoRouter);
 app.use("/api", userRoutes);
-app.use("/reports", reportRoutes);
+app.use("/api", reportRouter); 
 app.use('/api', experienceRouter);
 app.use('/api', goalRouter);
+
+
 
 // ✅ Swagger UI 설정
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

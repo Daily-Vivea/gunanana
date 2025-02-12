@@ -1,40 +1,20 @@
-const db = require("../../config/db3");
+const pool = require("../../config/db3.js");  // ✅ 기존 '../utils/db'에서 db3.js로 변경
 
-exports.getUserReports = async (userId, period) => {
+exports.getUserReports = async (userId) => {
     try {
-        const [rows] = await db.execute(
-            "SELECT * FROM Reports WHERE user_id = ? AND period_type = ?",
-            [userId, period]
-        );
-        return rows;
-    } catch (error) {
-        console.error("Error in getUserReports:", error);
-        throw error;
-    }
-};
-
-exports.getUserEmotions = async (userId, period) => {
-    try {
-        const [rows] = await db.execute(
-            "SELECT emotion_name, emotion_percentage FROM ReportEmotion WHERE report_id IN (SELECT report_id FROM Reports WHERE user_id = ? AND period_type = ?)",
-            [userId, period]
-        );
-        return rows;
-    } catch (error) {
-        console.error("Error in getUserEmotions:", error);
-        throw error;
-    }
-};
-
-exports.getUserGoalProgress = async (userId) => {
-    try {
-        const [rows] = await db.execute(
-            "SELECT goal_name, progress FROM Goals WHERE user_id = ?",
+        const [rows] = await pool.promise().query(
+            `SELECT r.report_id, r.period_type, r.start_date, r.end_date, r.goal_completion_rate,
+                    e.emotion_name, e.emotion_percentage
+             FROM Reports r
+             LEFT JOIN ReportEmotion e ON r.report_id = e.report_id
+             WHERE r.user_id = ?
+             ORDER BY r.end_date DESC`,
             [userId]
         );
-        return rows.length > 0 ? rows[0] : { goal_name: "목표가 없습니다", progress: 0 };
+        return rows;
     } catch (error) {
-        console.error("Error in getUserGoalProgress:", error);
+        console.error("Error fetching reports:", error);
         throw error;
     }
 };
+

@@ -19,3 +19,14 @@ Content-Type: application/json
   "week":1,
   "content": "TEST입니다."
 }
+
+//리포트 피드백과 하루 감정 요약 출력
+
+GET http://localhost:3000/api/reports/2
+Content-Type: application/json
+
+
+// 주별, 월별 진행률 분석
+
+GET http://localhost:3000/api/reports/detail/2
+Content-Type::application/json
