@@ -156,6 +156,7 @@ exports.analyzeExperience = async (req, res, next) => {
 
     res.status(200).send({ message: '경험 분석 및 저장 완료' });
   } catch (error) {
+    console.log("AI 에러입니다: ",error);
     next(error);
   }
 };
