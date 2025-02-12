@@ -39,6 +39,7 @@ exports.generateGrowth = async (content) => {
 
   try {
     const result = await model.generateContent(prompt);
+    console.log("growth_point 응답: ", result);
     let response = await result.response.text();
 
     console.log(response);
