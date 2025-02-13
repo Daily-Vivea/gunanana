@@ -201,7 +201,7 @@ exports.getRecommendation = async (req, res, next) => {
       return res.status(400).json({ message: "잘못된 입력입니다." });
     }
 
-    const [recommendedGoals] = await pool.query("SELECT goal_id, title, content FROM Goals WHERE experience_id = ? AND is_saved = false LIMIT 5", [experienceId]);
+    const [recommendedGoals] = await pool.query("SELECT goal_id, title, content FROM Goals WHERE experience_id = ? AND ai_recommended = true LIMIT 5", [experienceId]);
 
     const [recommendedLearnings] = await pool.query("SELECT title, url, source FROM Learnings WHERE experience_id = ? LIMIT 3", [experienceId]);
 
