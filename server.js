@@ -5,7 +5,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swaggerConfig");
 const todoRouter = require("./src/routes/todoRouter");
 const userRoutes = require("./src/routes/userRoutes");
-const reportRouter = require("./src/routes/reportRouter");
+const reportRoutes = require("./src/routes/reportRoutes");
 const experienceRouter = require("./src/routes/experienceRoutes.js");
 const goalRouter = require("./src/routes/goalRoutes.js");
 const errorMiddleware = require("./src/middlewares/errorMiddleware.js");
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(cors());
 app.use("/api", todoRouter);
 app.use("/api", userRoutes);
-app.use("/api", reportRouter); 
+app.use("/api", reportRoutes); 
 app.use('/api', experienceRouter);
 app.use('/api', goalRouter);
 

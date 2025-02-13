@@ -26,7 +26,7 @@ GET http://localhost:3000/api/reports/2
 Content-Type: application/json
 
 
-// 주별, 월별 진행률 분석
+// 주별, 월별 진행률, 감정 분석
 
 GET http://localhost:3000/api/reports/detail/2
 Content-Type::application/json
