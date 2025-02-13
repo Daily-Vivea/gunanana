@@ -18,7 +18,7 @@ exports.getReports = async (req, res) => {
             orderBy = "DESC"; // 최신 날짜 (`DESC`) 정렬
         }
 
-        console.log(`🔵 MySQL 쿼리 실행 중... 정렬 방식: ${orderBy}`);
+        
         const [feedbacks] = await pool.query(
             `SELECT e.user_id, DATE_FORMAT(e.date, '%Y-%m-%d') AS date, 
                     em.feedback, em.joy, em.sadness, em.anger, em.anxiety, em.satisfaction  
@@ -26,10 +26,10 @@ exports.getReports = async (req, res) => {
              JOIN Emotions em ON e.experience_id = em.experience_id  
              WHERE e.user_id = ?
              ORDER BY e.date ${orderBy}`, 
-            [parsedUserID]
+            [parsedUserId]
         );
 
-        console.log("MySQL 응답 데이터:", feedbacks);
+    
 
         if (feedbacks.length === 0) {
             console.warn("해당 사용자의 피드백이 없습니다.");
@@ -87,7 +87,7 @@ exports.getReportDetails = async (req, res) => {
             return res.status(400).json({ message: "잘못된 userId 입력입니다." });
         }
 
-        console.log(`MySQL 쿼리 실행 중...`);
+        
         const [goals] = await pool.query(
             `SELECT start_date, progress FROM Goals WHERE user_id = ?`,  // start_date, progress 조회
             [parsedUserId]
@@ -101,7 +101,7 @@ exports.getReportDetails = async (req, res) => {
             [parsedUserId]
         );
 
-        console.log("🟡 MySQL 응답 데이터:", goals, emotions);
+       
 
         if (goals.length === 0 && emotions.length === 0) {
             console.warn("해당 사용자의 데이터가 없습니다.");
