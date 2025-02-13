@@ -116,7 +116,7 @@ exports.analyzeExperience = async (req, res, next) => {
     const { keywords, title, feedback } = await generateFeedback(experience.content);
     const { emotions, feedback: emotionFeedback } = await analyzeAiEmotionsAndFeedback(experience.content);
     const growth = await generateGrowth(experience.content);
-    const { growth_points, growth_potential } = growth;
+    const { point, potential } = growth;
 
     await pool.query("UPDATE Experiences SET title = ?, feedback = ?, keywords = ? WHERE experience_id = ?", [title, feedback, JSON.stringify(keywords), experienceId]);
 
@@ -129,7 +129,7 @@ exports.analyzeExperience = async (req, res, next) => {
     );    
 
     await pool.query(`INSERT INTO Growths (experience_id, point, potential) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE point=VALUES(point), potential=VALUES(potential)`,
-      [experienceId, JSON.stringify(growth_points), growth_potential]
+      [experienceId, JSON.stringify(point), potential]
     );
 
     // 추천 목표 & 학습 생성
