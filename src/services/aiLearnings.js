@@ -16,10 +16,12 @@ exports.getLearningRecommendations = async (learningTitles) => {
           maxResults: 1,
           type: "video",
           key: YOUTUBE_API_KEY,
-        });
+        }).toString();
 
         const response = await fetch(`${YOUTUBE_SEARCH_URL}?${searchParams}`);
+        console.log('유튜브 search url: ', response);
         const data = await response.json();
+        console.log('유튜브 결과값: ', data.items);
 
         if (!data.items || data.items.length === 0) {
           return { title: query, url: null, source: "YouTube" };
