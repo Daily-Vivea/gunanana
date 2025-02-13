@@ -17,7 +17,7 @@ experienceRouter.put('/:id/analysis', asyncHandler(analyzeExperience));
 experienceRouter.get('/:id/feedbacks', asyncHandler(getFeedback));
 
 // 추천 목표 화면, id는 experience id
-experienceRouter.get('/:id/recommands', asyncHandler(getRecommendation));
+experienceRouter.get('/:id/recommends', asyncHandler(getRecommendation));
 
 // 추천목표 저장하기 버튼, id는 goal id
 experienceRouter.put('/:id/save', asyncHandler(saveGoal));
