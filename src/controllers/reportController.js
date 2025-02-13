@@ -68,6 +68,11 @@ exports.getReports = async (req, res) => {
     }
 };
 
+
+
+
+
+
 exports.getReportDetails = async (req, res) => {
     try {
         console.log("[GET] /reports/detail 요청: userId =", req.params.userId);
@@ -79,12 +84,19 @@ exports.getReportDetails = async (req, res) => {
             return res.status(400).json({ message: "잘못된 userId 입력입니다." });
         }
 
-        
-        const [goals] = await pool.query(
-            `SELECT start_date, progress FROM Goals WHERE user_id = ?`,  // start_date, progress 조회
+        // 현재 날짜 정보
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0 (Jan) ~ 11 (Dec)
+        const currentWeek = Math.ceil(today.getDate() / 7); // 이번 달의 몇 번째 주인지 계산
+
+        // Reports 테이블에서 user_id 기준으로 period_type별 데이터 가져오기
+        const [reports] = await pool.query(
+            `SELECT period_type, start_date, goal_completion_rate, title FROM Reports WHERE user_id = ?`,
             [parsedUserId]
         );
 
+        // Emotions 테이블에서 감정 데이터 가져오기
         const [emotions] = await pool.query(
             `SELECT e.date, em.joy, em.sadness, em.anger, em.anxiety, em.satisfaction  
              FROM Experiences e  
@@ -92,18 +104,6 @@ exports.getReportDetails = async (req, res) => {
              WHERE e.user_id = ?`,
             [parsedUserId]
         );
-
-       
-
-        if (goals.length === 0 && emotions.length === 0) {
-            console.warn("해당 사용자의 데이터가 없습니다.");
-            return res.json({ message: "해당 사용자의 데이터가 없습니다." });
-        }
-
-        // 현재 날짜 정보
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // 0 (Jan) ~ 11 (Dec)
 
         let totalWeeklyProgress = 0, weeklyGoalCount = 0;
         let totalMonthlyProgress = 0, monthlyGoalCount = 0;
@@ -114,29 +114,41 @@ exports.getReportDetails = async (req, res) => {
         let weeklyEmotionTotal = 0;
         let monthlyEmotionTotal = 0;
 
-        // 진행률 계산
-        goals.forEach(row => {
-            const startDate = new Date(row.start_date);
-            const weeksElapsed = Math.floor((today - startDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            const isThisWeek = weeksElapsed === 1;
-            const isThisMonth = (startDate.getFullYear() === currentYear && startDate.getMonth() === currentMonth);
+        let weeklyTitles = new Set(); // 중복 방지를 위한 Set
+        let monthlyTitles = new Set(); // 중복 방지를 위한 Set
 
-            if (isThisWeek) {
-                totalWeeklyProgress += row.progress;
+        // 진행률 & Title 계산 (주간 & 월간)
+        reports.forEach(row => {
+            const startDate = new Date(row.start_date);
+            const reportYear = startDate.getFullYear();
+            const reportMonth = startDate.getMonth();
+            const reportWeek = Math.ceil(startDate.getDate() / 7); // 해당 월에서 몇 번째 주인지 계산
+
+            const isThisWeek = (reportYear === currentYear && reportMonth === currentMonth && reportWeek === currentWeek);
+            const isThisMonth = (reportYear === currentYear && reportMonth === currentMonth);
+
+            if (row.period_type === "WEEKLY" && isThisWeek) {
+                totalWeeklyProgress += row.goal_completion_rate;
                 weeklyGoalCount++;
+                weeklyTitles.add(row.title);
             }
-            if (isThisMonth) {
-                totalMonthlyProgress += row.progress;
+
+            if (row.period_type === "MONTHLY" && isThisMonth) {
+                totalMonthlyProgress += row.goal_completion_rate;
                 monthlyGoalCount++;
+                monthlyTitles.add(row.title);
             }
         });
 
-        // 감정값 계산
+        // 감정값 계산 (주간 & 월간)
         emotions.forEach(row => {
             const emotionDate = new Date(row.date);
-            const weeksElapsed = Math.floor((today - emotionDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            const isThisWeek = weeksElapsed === 1;
-            const isThisMonth = (emotionDate.getFullYear() === currentYear && emotionDate.getMonth() === currentMonth);
+            const emotionYear = emotionDate.getFullYear();
+            const emotionMonth = emotionDate.getMonth();
+            const emotionWeek = Math.ceil(emotionDate.getDate() / 7); // 해당 월에서 몇 번째 주인지 계산
+
+            const isThisWeek = (emotionYear === currentYear && emotionMonth === currentMonth && emotionWeek === currentWeek);
+            const isThisMonth = (emotionYear === currentYear && emotionMonth === currentMonth);
 
             if (isThisWeek) {
                 weeklyEmotions.joy += row.joy;
@@ -157,15 +169,16 @@ exports.getReportDetails = async (req, res) => {
             }
         });
 
-        // 평균 진행률 계산 (소수점 없이 반올림)
+        // 백분율 변환을 위한 공통 함수
+        const calculatePercentage = (value, total) => {
+            return total > 0 ? Math.round((value / total) * 100) : 0;
+        };
+
+        // 평균 진행률을 백분율로 변환
         const averageWeeklyProgress = weeklyGoalCount > 0 ? Math.round(totalWeeklyProgress / weeklyGoalCount) : 0;
         const averageMonthlyProgress = monthlyGoalCount > 0 ? Math.round(totalMonthlyProgress / monthlyGoalCount) : 0;
 
-        // 감정 백분율 계산
-        const calculatePercentage = (emotionCount, totalCount) => {
-            return totalCount > 0 ? Math.round((emotionCount / totalCount) * 100) : 0;
-        };
-
+        // 감정 백분율 변환
         const weeklyEmotionPercentages = {
             joy: calculatePercentage(weeklyEmotions.joy, weeklyEmotionTotal),
             sadness: calculatePercentage(weeklyEmotions.sadness, weeklyEmotionTotal),
@@ -182,14 +195,12 @@ exports.getReportDetails = async (req, res) => {
             satisfaction: calculatePercentage(monthlyEmotions.satisfaction, monthlyEmotionTotal),
         };
 
-        //하나의 API로 통합된 데이터 반환
+        // 최종 JSON 응답 반환 (요청한 데이터만 출력)
         res.json({
-            total_weekly_progress: totalWeeklyProgress,
-            weekly_goal_count: weeklyGoalCount,
             average_weekly_progress: averageWeeklyProgress,
-            total_monthly_progress: totalMonthlyProgress,
-            monthly_goal_count: monthlyGoalCount,
             average_monthly_progress: averageMonthlyProgress,
+            weekly_titles: Array.from(weeklyTitles), // 중복 제거 후 배열로 변환
+            monthly_titles: Array.from(monthlyTitles), // 중복 제거 후 배열로 변환
             weekly_emotions: weeklyEmotionPercentages,
             monthly_emotions: monthlyEmotionPercentages
         });
@@ -198,4 +209,3 @@ exports.getReportDetails = async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
-
