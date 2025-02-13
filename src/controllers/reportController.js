@@ -18,52 +18,47 @@ exports.getReports = async (req, res) => {
             orderBy = "DESC"; // 최신 날짜 (`DESC`) 정렬
         }
 
-        
+        // Experiences 테이블에서 feedback과 emotion 가져오기
         const [feedbacks] = await pool.query(
             `SELECT e.user_id, DATE_FORMAT(e.date, '%Y-%m-%d') AS date, 
-                    em.feedback, em.joy, em.sadness, em.anger, em.anxiety, em.satisfaction  
+                    e.feedback, COALESCE(e.emotion, NULL) AS emotion
              FROM Experiences e  
-             JOIN Emotions em ON e.experience_id = em.experience_id  
              WHERE e.user_id = ?
              ORDER BY e.date ${orderBy}`, 
             [parsedUserId]
         );
-
-    
 
         if (feedbacks.length === 0) {
             console.warn("해당 사용자의 피드백이 없습니다.");
             return res.json({ success: false, message: "해당 사용자의 피드백이 없습니다." });
         }
 
-        // summary 필드 추가 (가장 높은 감정값에 따라 요약)
+        // summary & emotion 필드 변환
         const summarizedFeedbacks = feedbacks.map(fb => {
-            const emotions = {
-                "좋은 하루였네요!": fb.joy,
-                "슬픈 하루였네요": fb.sadness,
-                "화나는 하루였네요": fb.anger,
-                "불안한 하루였네요": fb.anxiety,
-                "만족스러운 하루였네요": fb.satisfaction
-            };
+            let summary = null; // 기본값
+            let emotionCategory = null; // 기본값
 
-            // 감정값이 0이 아닌 것들 중 가장 높은 감정 찾기
-            let maxEmotion = Object.entries(emotions)
-                .filter(([_, value]) => value > 0)  // 0이 아닌 값만 필터링
-                .sort((a, b) => b[1] - a[1]);  // 값 기준으로 내림차순 정렬
-
-            // 감정을 표현할 수 없으면 기본 메시지 출력
-            const summary = maxEmotion.length > 0 ? maxEmotion[0][0] : "오늘 하루를 표현할 수 있는 감정이 없어요";
+            if (fb.emotion === "우울했어요") {
+                summary = "슬픈 하루였네요";
+                emotionCategory = "bad";
+            } else if (fb.emotion === "행복했어요") {
+                summary = "행복한 하루였네요";
+                emotionCategory = "happy";
+            } else if (fb.emotion === "그저 그랬어요") {
+                summary = "그저 그런 하루였네요";
+                emotionCategory = "soso";
+            }
 
             return {
                 user_id: fb.user_id,
                 date: fb.date,
-                feedback: fb.feedback,
-                summary
+                feedback: fb.feedback,  // NULL 값은 그대로 유지
+                summary,
+                emotion: emotionCategory // 기존 emotion 제거 후 변환된 값 사용
             };
         });
 
         res.json({
-            success: true,
             userId: parsedUserId,
             feedbacks: summarizedFeedbacks
         });
@@ -72,9 +67,6 @@ exports.getReports = async (req, res) => {
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
-
-
-
 
 exports.getReportDetails = async (req, res) => {
     try {
