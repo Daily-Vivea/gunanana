@@ -9,7 +9,7 @@ exports.getReports = async (req, res) => {
 
         if (!parsedUserId || isNaN(parsedUserId)) {
             console.error("잘못된 userId 입력:", req.params.userId);
-            return res.status(400).json({ success: false, message: "잘못된 userId 입력입니다." });
+            return res.status(400).json({ message: "잘못된 userId 입력입니다." });
         }
 
         // 기본 정렬 순서: 오래된 순 (`ASC`)
@@ -30,7 +30,7 @@ exports.getReports = async (req, res) => {
 
         if (feedbacks.length === 0) {
             console.warn("해당 사용자의 피드백이 없습니다.");
-            return res.json({ success: false, message: "해당 사용자의 피드백이 없습니다." });
+            return res.json({ message: "해당 사용자의 피드백이 없습니다." });
         }
 
         // summary & emotion 필드 변환
@@ -64,12 +64,9 @@ exports.getReports = async (req, res) => {
         });
     } catch (error) {
         console.error("MySQL 오류 발생:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
-
-
-
 
 
 
@@ -87,12 +84,14 @@ exports.getReportDetails = async (req, res) => {
         // 현재 날짜 정보
         const today = new Date();
         const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // 0 (Jan) ~ 11 (Dec)
-        const currentWeek = Math.ceil(today.getDate() / 7); // 이번 달의 몇 번째 주인지 계산
+        const currentMonth = today.getMonth();
+        const currentWeek = Math.ceil(today.getDate() / 7);
 
         // Reports 테이블에서 user_id 기준으로 period_type별 데이터 가져오기
         const [reports] = await pool.query(
-            `SELECT period_type, start_date, goal_completion_rate, title FROM Reports WHERE user_id = ?`,
+            `SELECT period_type, start_date, goal_completion_rate, title 
+             FROM Reports 
+             WHERE user_id = ?`, 
             [parsedUserId]
         );
 
@@ -101,7 +100,7 @@ exports.getReportDetails = async (req, res) => {
             `SELECT e.date, em.joy, em.sadness, em.anger, em.anxiety, em.satisfaction  
              FROM Experiences e  
              JOIN Emotions em ON e.experience_id = em.experience_id  
-             WHERE e.user_id = ?`,
+             WHERE e.user_id = ?`, 
             [parsedUserId]
         );
 
@@ -114,15 +113,15 @@ exports.getReportDetails = async (req, res) => {
         let weeklyEmotionTotal = 0;
         let monthlyEmotionTotal = 0;
 
-        let weeklyTitles = new Set(); // 중복 방지를 위한 Set
-        let monthlyTitles = new Set(); // 중복 방지를 위한 Set
+        let weeklyTitles = new Set();
+        let monthlyTitles = new Set();
 
         // 진행률 & Title 계산 (주간 & 월간)
         reports.forEach(row => {
             const startDate = new Date(row.start_date);
             const reportYear = startDate.getFullYear();
             const reportMonth = startDate.getMonth();
-            const reportWeek = Math.ceil(startDate.getDate() / 7); // 해당 월에서 몇 번째 주인지 계산
+            const reportWeek = Math.ceil(startDate.getDate() / 7);
 
             const isThisWeek = (reportYear === currentYear && reportMonth === currentMonth && reportWeek === currentWeek);
             const isThisMonth = (reportYear === currentYear && reportMonth === currentMonth);
@@ -145,7 +144,7 @@ exports.getReportDetails = async (req, res) => {
             const emotionDate = new Date(row.date);
             const emotionYear = emotionDate.getFullYear();
             const emotionMonth = emotionDate.getMonth();
-            const emotionWeek = Math.ceil(emotionDate.getDate() / 7); // 해당 월에서 몇 번째 주인지 계산
+            const emotionWeek = Math.ceil(emotionDate.getDate() / 7);
 
             const isThisWeek = (emotionYear === currentYear && emotionMonth === currentMonth && emotionWeek === currentWeek);
             const isThisMonth = (emotionYear === currentYear && emotionMonth === currentMonth);
@@ -169,12 +168,12 @@ exports.getReportDetails = async (req, res) => {
             }
         });
 
-        // 백분율 변환을 위한 공통 함수
+        // 백분율 변환 함수
         const calculatePercentage = (value, total) => {
             return total > 0 ? Math.round((value / total) * 100) : 0;
         };
 
-        // 평균 진행률을 백분율로 변환
+        // 평균 진행률 백분율 변환
         const averageWeeklyProgress = weeklyGoalCount > 0 ? Math.round(totalWeeklyProgress / weeklyGoalCount) : 0;
         const averageMonthlyProgress = monthlyGoalCount > 0 ? Math.round(totalMonthlyProgress / monthlyGoalCount) : 0;
 
@@ -195,17 +194,66 @@ exports.getReportDetails = async (req, res) => {
             satisfaction: calculatePercentage(monthlyEmotions.satisfaction, monthlyEmotionTotal),
         };
 
-        // 최종 JSON 응답 반환 (요청한 데이터만 출력)
+        // 또래 목표 추천 추가 (주간/월간 구분)
+        const [[user]] = await pool.query("SELECT age FROM Users WHERE user_id = ?", [parsedUserId]);
+
+        let weeklyPeerGoals = [];
+        let monthlyPeerGoals = [];
+
+        if (user && user.age !== null) {
+            const userAge = user.age;
+            const minAge = userAge - 5;
+            const maxAge = userAge + 5;
+
+            const [goals] = await pool.query(
+                `SELECT g.title, g.start_date, u.name  
+                 FROM Goals g 
+                 JOIN Users u ON g.user_id = u.user_id
+                 WHERE u.age BETWEEN ? AND ?  
+                 AND u.user_id != ?  
+                 AND g.is_saved = true
+                 ORDER BY RAND() 
+                 LIMIT 10`,
+                [minAge, maxAge, parsedUserId]
+            );
+
+            goals.forEach(goal => {
+                const goalDate = new Date(goal.start_date);
+                const goalYear = goalDate.getFullYear();
+                const goalMonth = goalDate.getMonth();
+                const goalWeek = Math.ceil(goalDate.getDate() / 7);
+
+                const isThisWeek = (goalYear === currentYear && goalMonth === currentMonth && goalWeek === currentWeek);
+                const isThisMonth = (goalYear === currentYear && goalMonth === currentMonth);
+
+                const maskedName = goal.name.charAt(0) + "ㅇㅇ";
+
+                if (isThisWeek && weeklyPeerGoals.length < 5) {
+                    weeklyPeerGoals.push({ user: maskedName, title: goal.title });
+                } else if (isThisMonth && monthlyPeerGoals.length < 5) {
+                    monthlyPeerGoals.push({ user: maskedName, title: goal.title });
+                }
+            });
+        }
+
+        // 최종 JSON 응답 반환
         res.json({
             average_weekly_progress: averageWeeklyProgress,
             average_monthly_progress: averageMonthlyProgress,
-            weekly_titles: Array.from(weeklyTitles), // 중복 제거 후 배열로 변환
-            monthly_titles: Array.from(monthlyTitles), // 중복 제거 후 배열로 변환
+            weekly_titles: Array.from(weeklyTitles),
+            monthly_titles: Array.from(monthlyTitles),
             weekly_emotions: weeklyEmotionPercentages,
-            monthly_emotions: monthlyEmotionPercentages
+            monthly_emotions: monthlyEmotionPercentages,
+            weekly_peer_goals: weeklyPeerGoals,
+            monthly_peer_goals: monthlyPeerGoals
         });
     } catch (error) {
         console.error("MySQL 오류 발생:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
+
+
+
+
