@@ -169,6 +169,36 @@ exports.updateGoal = async (req, res, next) => {
       [title, content, interval_weeks || 0, interval_times || 0, startDate, endDate, goalStatus, goalId]
     );
 
+    // 진행률 계산
+    // 수행하는 총 기간(주 단위)
+    const total_weeks = Math.ceil((endDate - startDate) / (7 * 24 * 60 * 60 * 1000));
+
+    // 수행해야 하는 총 횟수
+    const total_times = Math.ceil((total_weeks / interval_weeks) * interval_times);
+
+    // 현재까지 수행한 횟수 조회
+    const [completedPeriods] = await pool.query(
+      `SELECT 
+          FLOOR((week - 1) / ?) + 1 AS period, 
+          LEAST(COUNT(week), ?) AS completed_times
+       FROM GoalRecord 
+       WHERE goal_id = ? 
+       GROUP BY period`,
+      [interval_weeks, interval_times, goalId]
+    );
+
+    // 수행한 총 횟수
+    let completed_times = 0;
+    completedPeriods.forEach(row => {
+      completed_times += row.completed_times;
+    });
+
+    // 진행률 계산
+    let progress = Math.round((completed_times / total_times) * 100);
+    progress = Math.min(progress, 100);
+
+    await pool.query("UPDATE Goals SET progress = ? WHERE goal_id = ?", [progress, goalId]);
+
     res.status(200).send({ message: ' 목표 수정 완료' });
   } catch (error) {
     next(error);
