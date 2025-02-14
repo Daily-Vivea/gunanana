@@ -6,7 +6,7 @@ Content-Type: application/json
 ###
 
 //목표기록 검색
-GET http://localhost:3000/api/goal/2/2
+GET http://localhost:3000/api/goal/2/16
 Content-Type: application/json
 
 

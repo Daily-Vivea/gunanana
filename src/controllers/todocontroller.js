@@ -67,7 +67,7 @@ const getGoalById = async(req, res) => {
 
         const recordRes = records.length > 0 
           ? records.map((record) => ({
-              week: record.weeks,
+              week: record.week,
               content: record.content,
               date: record.created_at,
             }))
