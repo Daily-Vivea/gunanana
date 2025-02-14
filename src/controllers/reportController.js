@@ -44,7 +44,7 @@ exports.getReports = async (req, res) => {
             } else if (fb.emotion === "행복했어요") {
                 summary = "행복한 하루였네요";
                 emotionCategory = "happy";
-            } else if (fb.emotion === "그저 그랬어요") {
+            } else if (fb.emotion === "그저_그랬어요") {
                 summary = "그저 그런 하루였네요";
                 emotionCategory = "soso";
             }
