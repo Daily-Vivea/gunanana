@@ -12,14 +12,16 @@ Content-Type: application/json
 
 ###
 
-POST http://localhost:3000/api/goalrecord/2
+POST http://localhost:3000/api/goalrecord/16
 Content-Type: application/json
 
 {
-  "week":1,
-  "content": "TEST입니다."
+  "week": 1,
+  "content": "목표 레코드 내용"
 }
 
+
+###
 //리포트 피드백과 하루 감정 요약 출력
 
 GET http://localhost:3000/api/reports/2

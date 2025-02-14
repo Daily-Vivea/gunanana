@@ -109,14 +109,21 @@ const postGoalRecord = async(req, res) => {
         }
         console.log("✅ GoalRecord가 DB에 저장되었습니다.");
 
-        pool.query("SELECT (interval_weeks * interval_times) AS totalTimes FROM Goals WHERE goal_id=?", 
+        pool.query("SELECT (interval_weeks * interval_times) AS intervalTimes, DATEDIFF(end_date,start_date) AS TimeDiff FROM Goals WHERE goal_id=?", 
           [goalId], 
           (err, result) => {
             if (err) {
               console.error("❌ Goals 조회 오류:", err);
               return res.status(504).json({ message: "DB 조회 오류입니다." });
             }
-            totalTimes = result.length > 0 ? result[0].totalTimes ?? 1 : 1; // 기본값 1
+            if(result.length===0){
+              return res.status(504).json({message: "DB 조회 오류입니다."});
+            }
+            const totalWeeks = Math.floor(result[0].TimeDiff/7);
+            console.log("totalWeeks: ",totalWeeks);
+            totalTimes = result[0].intervalTimes*totalWeeks;
+            console.log('totalTimes: ', totalTimes);
+
 
             pool.query("SELECT COUNT(*) AS records FROM GoalRecord WHERE goal_id=?", 
               [goalId], 
