@@ -124,7 +124,10 @@ exports.getReportDetails = async (req, res) => {
             const reportWeek = Math.ceil(startDate.getDate() / 7);
 
             const isThisWeek = (reportYear === currentYear && reportMonth === currentMonth && reportWeek === currentWeek);
-            const isThisMonth = (reportYear === currentYear && reportMonth === currentMonth);
+           const isThisMonth = (
+    (reportYear === currentYear && reportMonth === currentMonth) || 
+    (endDate.getFullYear() === currentYear && endDate.getMonth() === currentMonth)
+);
 
             if (row.period_type === "WEEKLY" && isThisWeek) {
                 totalWeeklyProgress += row.goal_completion_rate;
@@ -147,7 +150,10 @@ exports.getReportDetails = async (req, res) => {
             const emotionWeek = Math.ceil(emotionDate.getDate() / 7);
 
             const isThisWeek = (emotionYear === currentYear && emotionMonth === currentMonth && emotionWeek === currentWeek);
-            const isThisMonth = (emotionYear === currentYear && emotionMonth === currentMonth);
+            const isThisMonth = (
+    (reportYear === currentYear && reportMonth === currentMonth) || 
+    (endDate.getFullYear() === currentYear && endDate.getMonth() === currentMonth)
+);
 
             if (isThisWeek) {
                 weeklyEmotions.joy += row.joy;
