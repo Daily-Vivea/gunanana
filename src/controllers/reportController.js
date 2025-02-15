@@ -147,10 +147,7 @@ exports.getReportDetails = async (req, res) => {
             const emotionWeek = Math.ceil(emotionDate.getDate() / 7);
 
             const isThisWeek = (emotionYear === currentYear && emotionMonth === currentMonth && emotionWeek === currentWeek);
-            const isThisMonth = (
-    (reportYear === currentYear && reportMonth === currentMonth) || 
-    (endDate.getFullYear() === currentYear && endDate.getMonth() === currentMonth)
-);
+            const isThisMonth = (emotionYear === currentYear && emotionMonth === currentMonth);
 
             if (isThisWeek) {
                 weeklyEmotions.joy += row.joy;
@@ -255,7 +252,6 @@ exports.getReportDetails = async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
-
 
 
 
