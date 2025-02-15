@@ -124,10 +124,7 @@ exports.getReportDetails = async (req, res) => {
             const reportWeek = Math.ceil(startDate.getDate() / 7);
 
             const isThisWeek = (reportYear === currentYear && reportMonth === currentMonth && reportWeek === currentWeek);
-           const isThisMonth = (
-    (reportYear === currentYear && reportMonth === currentMonth) || 
-    (endDate.getFullYear() === currentYear && endDate.getMonth() === currentMonth)
-);
+            const isThisMonth = (reportYear === currentYear && reportMonth === currentMonth);
 
             if (row.period_type === "WEEKLY" && isThisWeek) {
                 totalWeeklyProgress += row.goal_completion_rate;
